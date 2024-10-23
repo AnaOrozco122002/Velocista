@@ -45,9 +45,9 @@ unsigned int sensorValues[NUM_SENSORS];
 
 //Variables para el controlador
 float Tm = 9.0;                                            //tiempo de muestreo en mili segundos
-float Referencia=0.0, Control=0.0, Kp = 5.3, Ti = 0.0, Td = 0.03; 
+float Referencia=0.0, Control=0.0, Kp = 3.5, Ti = 0.0, Td = 0.01; 
 float Salida=0.0, Error=0.0, Error_ant=0.0;                       //variables de control
-float offset = 1, Vmax = 570,E_integral;
+float offset = 1, Vmax = 200,E_integral;
 char caracter; String datos;   //  sintonizacion bluetooth
 int d1, d2, d3,d4;                //  sintonizacion bluetooth
 String S_Kp, S_Ti, S_Td, S_Vmax;       //  sintonizacion bluetooth
@@ -58,10 +58,10 @@ const uint16_t Frecuencia = 5000;
 const byte Canales[] ={0,1};
 const byte Resolucion = 10;
 
-const int  PWMD = D4;                                             // Definición Pin 6 PWM Motor Derecho
-const int  PWMI = D8;  
-const int  DirD = D3;
-const int  DirI = D7;
+const int  PWMI = D4;                                             // Definición Pin 6 PWM Motor Derecho
+const int  PWMD = D8;  
+const int  DirI = D3;
+const int  DirD = D7;
 
 
 class MyCallbacks_1: public BLECharacteristicCallbacks {
@@ -149,7 +149,7 @@ void setup() {
 
 void loop() {
   Estado=digitalRead(MInit);
-  //Estado=1;
+  Estado=1;
   while(Estado){
     Estado=digitalRead(MInit);
     Tinicio    = millis();                                        // toma el valor en milisengundos
@@ -171,7 +171,7 @@ void loop() {
 //Para leer el sensor
 float Lectura_Sensor(void) {                                             
   Salida = (qtra.readLine(sensorValues)/7500.0) - 1.0;
-  //Serial.println(Salida);
+  Serial.println(Salida);
   return Salida;                                               // retorno la variable de salidad del proceso normalizada entre 0-1, al olgoritmo de control
 }
 
@@ -182,7 +182,7 @@ float Controlador(float Referencia, float Salida) {                           //
 
   Error_ant      = Error; 
   Error          = Referencia - Salida;
-  Error = (Error > -0.1 && Error < 0) ? 0 : (Error > 0 && Error < 0.1) ? 0 : Error;
+  Error = (Error > -0.2 && Error < 0) ? 0 : (Error > 0 && Error < 0.2) ? 0 : Error;
   E_integral     = E_integral + (((Error*(Tm/1000.0)) + ((Tm/1000.0)*(Error - Error_ant)))/2.0);
   E_integral     = ( E_integral > 100.0) ? 100.0 :  (E_integral < -100.0 ) ? -100 : E_integral;
   E_derivativo   = (Error - Error_ant)/(Tm/1000.0);
@@ -205,14 +205,24 @@ void Esfuerzo_Control(float Control) {                            //envia el esf
   Serial.print("Izquierda: ");
   Serial.print(floor(constrain(abs(s2), 0.0, 1.0)* Vmax));*/
 
-   if( s1 <= 0.0 ){// Motor Derecho
+  if( s1 <= 0.0 ){// Motor Derecho
     digitalWrite(DirD,HIGH);}
   else{digitalWrite(DirD,LOW);}                   
    
   
   if( s2 <= 0.0 ){ //Motor Izquierdo
-    digitalWrite(DirI,HIGH);}
-  else{digitalWrite(DirI,LOW);}
+    digitalWrite(DirI,LOW);}
+  else{digitalWrite(DirI,HIGH);}
+
+  /*ledcWrite(Canales[0], 250);
+  ledcWrite(Canales[1], 250);
+  digitalWrite(DirD,HIGH);
+  digitalWrite(DirI,LOW);
+  delay(2000);
+  digitalWrite(DirI,HIGH);
+  digitalWrite(DirD,LOW);
+  delay(2000);*/
+
 } 
 
 unsigned long int Tiempo_Muestreo(unsigned long int Tinicio){//, unsigned int Tm){ // Funcion que asegura que el tiempo de muestreo sea el mismo siempre
