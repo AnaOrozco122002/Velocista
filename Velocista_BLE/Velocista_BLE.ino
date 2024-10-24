@@ -47,7 +47,7 @@ unsigned int sensorValues[NUM_SENSORS];
 float Tm = 9.0;                                            //tiempo de muestreo en mili segundos
 float Referencia=0.0, Control=0.0, Kp = 3.5, Ti = 0.0, Td = 0.01; 
 float Salida=0.0, Error=0.0, Error_ant=0.0;                       //variables de control
-float offset = 1, Vmax = 200,E_integral;
+float offset = 1, Vmax = 0,E_integral;
 char caracter; String datos;   //  sintonizacion bluetooth
 int d1, d2, d3,d4;                //  sintonizacion bluetooth
 String S_Kp, S_Ti, S_Td, S_Vmax;       //  sintonizacion bluetooth
@@ -180,14 +180,14 @@ float Controlador(float Referencia, float Salida) {                           //
   float E_derivativo;
   float Control;
 
-  Error_ant      = Error; 
+  
   Error          = Referencia - Salida;
-  Error = (Error > -0.2 && Error < 0) ? 0 : (Error > 0 && Error < 0.2) ? 0 : Error;
+  //Error = (Error > -0.2 && Error < 0) ? 0 : (Error > 0 && Error < 0.2) ? 0 : Error;
   E_integral     = E_integral + (((Error*(Tm/1000.0)) + ((Tm/1000.0)*(Error - Error_ant)))/2.0);
   E_integral     = ( E_integral > 100.0) ? 100.0 :  (E_integral < -100.0 ) ? -100 : E_integral;
   E_derivativo   = (Error - Error_ant)/(Tm/1000.0);
   Control        = Kp*( Error + Ti*E_integral + Td*E_derivativo );
-
+  Error_ant      = Error; 
   Control     = ( Control > 1.5) ? 1.5 :  (Control < -1.5 ) ? -1.5 : Control;
   //Serial.println(Control); 
   return Control;
@@ -206,8 +206,8 @@ void Esfuerzo_Control(float Control) {                            //envia el esf
   Serial.print(floor(constrain(abs(s2), 0.0, 1.0)* Vmax));*/
 
   if( s1 <= 0.0 ){// Motor Derecho
-    digitalWrite(DirD,HIGH);}
-  else{digitalWrite(DirD,LOW);}                   
+    digitalWrite(DirD,LOW);}
+  else{digitalWrite(DirD,HIGH);}                   
    
   
   if( s2 <= 0.0 ){ //Motor Izquierdo
@@ -252,7 +252,7 @@ void Inicializacion_Sensores(){
   Serial.println("-------------- Proceso de Calibracion de Los Sensores --------------" );
   Serial.println("Iniciando ......");
   //Calibración Inicial de Pines Sensor
-  for (int i = 0; i < 100; i++){  // make the calibration take about 10 seconds
+  for (int i = 0; i < 400; i++){  // make the calibration take about 10 seconds
     qtra.calibrate();       // reads all sensors 10 times at 2.5 ms per six sensors (i.e. ~25 ms per call)
   }
   delay(2000);
@@ -261,9 +261,11 @@ void Inicializacion_Sensores(){
 void Inicializacion_Pines(){
   pinMode(PWMD,OUTPUT);
   pinMode(PWMI,OUTPUT);
-  pinMode(D3,OUTPUT);
-  pinMode(D8,OUTPUT);
+  pinMode(DirI,OUTPUT);
+  pinMode(DirD,OUTPUT);
   pinMode(MInit,INPUT);
+  digitalWrite(DirI, LOW);
+  digitalWrite(PWMI, LOW);
 }
 
 
