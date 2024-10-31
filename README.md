@@ -1,4 +1,4 @@
-# Código para el carro Sollow
+# Código para el Velocista Sollow
 ### Sobre el código
 ----------------------------------
 
