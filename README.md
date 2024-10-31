@@ -13,6 +13,8 @@
 * ##### Microcontrolador
 Para la logica del robot se utiliza la tarjeta XIAO ESP32C3 de Seeed Studio que tiene el siguiente diagrama de pines:
 
+![](https://github.com/AnaOrozco122002/Velocista/blob/master/images/xiaopines.jpg)
+
 * ##### Drivers
 
 <<<<<<< HEAD
