@@ -1,4 +1,3 @@
-
 //Incluir Librerias
 #include <QTRSensors16.h>
 #include <ESP32Servo.h>
