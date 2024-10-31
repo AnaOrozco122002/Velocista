@@ -15,7 +15,11 @@ Para la logica del robot se utiliza la tarjeta XIAO ESP32C3 de Seeed Studio que 
 
 * ##### Drivers
 
-aaaaaa
+<<<<<<< HEAD
+
+=======
+
+>>>>>>> b5d43787a0d426f91cd0b99ff61501fda45a8da4
 
 
 ### Diagrama Eléctrico
