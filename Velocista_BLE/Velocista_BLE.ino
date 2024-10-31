@@ -45,7 +45,7 @@ unsigned int sensorValues[NUM_SENSORS];
 
 //Variables para el controlador
 float Tm = 9.0;                                            //tiempo de muestreo en mili segundos
-float Referencia=0.0, Control=0.0, Kp = 3.5, Ti = 0.0, Td = 0.01; 
+float Referencia=0.0, Control=0.0, Kp = 15, Ti = 0.0, Td = 0.0; 
 float Salida=0.0, Error=0.0, Error_ant=0.0;                       //variables de control
 float offset = 1, Vmax = 0,E_integral;
 char caracter; String datos;   //  sintonizacion bluetooth
@@ -101,8 +101,8 @@ class MyCallbacks_1: public BLECharacteristicCallbacks {
           datos="";
           
           Kp = S_Kp.toFloat();  Ti = S_Ti.toFloat();   Td = S_Td.toFloat();  Vmax = S_Vmax.toFloat();   
-          Serial.println("Skp: " + String(S_Kp) + " S_Ti: " + String(S_Ti) + " Td: " + String(S_Td) + " Vmax: " + String(S_Vmax)); 
-          Serial.println("kp: " + String(Kp) + " Ti: " + String(Ti) + " Td: " + String(Td) + " Vmax: " + String(Vmax));
+          //Serial.println("Skp: " + String(S_Kp) + " S_Ti: " + String(S_Ti) + " Td: " + String(S_Td) + " Vmax: " + String(S_Vmax)); 
+          //Serial.println("kp: " + String(Kp) + " Ti: " + String(Ti) + " Td: " + String(Td) + " Vmax: " + String(Vmax));
         }
 
       }
@@ -149,7 +149,7 @@ void setup() {
 
 void loop() {
   Estado=digitalRead(MInit);
-  Estado=1;
+  //Estado=1;
   while(Estado){
     Estado=digitalRead(MInit);
     Tinicio    = millis();                                        // toma el valor en milisengundos
@@ -171,7 +171,7 @@ void loop() {
 //Para leer el sensor
 float Lectura_Sensor(void) {                                             
   Salida = (qtra.readLine(sensorValues)/7500.0) - 1.0;
-  Serial.println(Salida);
+  //Serial.println(Salida);
   return Salida;                                               // retorno la variable de salidad del proceso normalizada entre 0-1, al olgoritmo de control
 }
 
@@ -182,16 +182,17 @@ float Controlador(float Referencia, float Salida) {                           //
 
   
   Error          = Referencia - Salida;
-  //Error = (Error > -0.2 && Error < 0) ? 0 : (Error > 0 && Error < 0.2) ? 0 : Error;
+  Error = (Error > -0.2 && Error < 0) ? 0 : (Error > 0 && Error < 0.2) ? 0 : Error;
   E_integral     = E_integral + (((Error*(Tm/1000.0)) + ((Tm/1000.0)*(Error - Error_ant)))/2.0);
   E_integral     = ( E_integral > 100.0) ? 100.0 :  (E_integral < -100.0 ) ? -100 : E_integral;
   E_derivativo   = (Error - Error_ant)/(Tm/1000.0);
   Control        = Kp*( Error + Ti*E_integral + Td*E_derivativo );
   Error_ant      = Error; 
-  Control     = ( Control > 1.5) ? 1.5 :  (Control < -1.5 ) ? -1.5 : Control;
+  Control     = ( Control > 2.5) ? 2.5 :  (Control < -2.5 ) ? -2.5 : Control;
   //Serial.println(Control); 
   return Control;
 }
+
 void Esfuerzo_Control(float Control) {                            //envia el esfuerzo de control en forma de PWM
   float s1 , s2;
 
@@ -200,35 +201,20 @@ void Esfuerzo_Control(float Control) {                            //envia el esf
   
   ledcWrite(Canales[0], floor(constrain(abs(s1), 0.0, 1.0)* Vmax));
   ledcWrite(Canales[1], floor(constrain(abs(s2), 0.0, 1.0)* Vmax));
-  /*Serial.print("Derecha: ");
-  Serial.print(floor(constrain(abs(s1), 0.0, 1.0)* Vmax));
-  Serial.print("Izquierda: ");
-  Serial.print(floor(constrain(abs(s2), 0.0, 1.0)* Vmax));*/
 
   if( s1 <= 0.0 ){// Motor Derecho
     digitalWrite(DirD,LOW);}
   else{digitalWrite(DirD,HIGH);}                   
-   
-  
+
   if( s2 <= 0.0 ){ //Motor Izquierdo
     digitalWrite(DirI,LOW);}
   else{digitalWrite(DirI,HIGH);}
-
-  /*ledcWrite(Canales[0], 250);
-  ledcWrite(Canales[1], 250);
-  digitalWrite(DirD,HIGH);
-  digitalWrite(DirI,LOW);
-  delay(2000);
-  digitalWrite(DirI,HIGH);
-  digitalWrite(DirD,LOW);
-  delay(2000);*/
-
 } 
 
 unsigned long int Tiempo_Muestreo(unsigned long int Tinicio){//, unsigned int Tm){ // Funcion que asegura que el tiempo de muestreo sea el mismo siempre
   unsigned long int T =millis()-Tinicio;
   return  T;
-  }
+}
 
 void CrearPWM(){
   ledcSetup(Canales[0],Frecuencia,Resolucion); 
@@ -238,24 +224,19 @@ void CrearPWM(){
 }
 void Inicializacion_turbina(){
   //Mensajes de Inicio
-  Serial.println("-------------- Proceso de Calibracion de ESC --------------" );
-  Serial.println("Iniciando ......");
-  Serial.println("ATENCIÓN El motor Iniciara a Girar");
   ESP32PWM::allocateTimer(2);
   myTurbina.setPeriodHertz(50);              //frecuencia de la señal cuadrada
   myTurbina.attach(Tur, 1000, 2000);  //(pin,min us de pulso, máx us de pulso)
   myTurbina.write(0);                        //Preparación de la turbina
   delay(2000);
 }
+
 void Inicializacion_Sensores(){
-  //Mensajes de Inicio
-  Serial.println("-------------- Proceso de Calibracion de Los Sensores --------------" );
-  Serial.println("Iniciando ......");
   //Calibración Inicial de Pines Sensor
   for (int i = 0; i < 400; i++){  // make the calibration take about 10 seconds
     qtra.calibrate();       // reads all sensors 10 times at 2.5 ms per six sensors (i.e. ~25 ms per call)
   }
-  delay(2000);
+  //delay(2000);
 }
 
 void Inicializacion_Pines(){
