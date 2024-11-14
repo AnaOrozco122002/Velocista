@@ -27,10 +27,10 @@ Se utilizan los siguientes pines
 
 * Pin Analogico para la entrada del sensor: A2 
 * Pines Digitales para la lectura del multiplexor del sensor: D9,D10,D0,D1
-* Pines de control del PWM: Motor Derecho: D8, Motor Izquierdo: D4
-* Pines de control de Dirección: Motor Derecho: D7, Motor Izquierdo: D3
-* Pin Controlador de Turbina: D6
-* Pin del modulo de inicio: D5
+* Pines de control del PWM: Motor Derecho: D8, Motor Izquierdo: D6
+* Pines de control de Dirección: Motor Derecho: D7, Motor Izquierdo: D5
+* Pin Controlador de Turbina: D4
+* Pin del modulo de inicio: D3
 
 
 
