@@ -2,7 +2,7 @@
 ### Sobre el código
 ----------------------------------
 
-- Este es un codigo creado para un robot velocista sin turbina (aunque tiene lo necesario para el ingreso de la misma) por estudiantes del Semillero de Robótica de la Universidad del Cauca.
+- Este es un codigo creado para un robot velocista con turbina por estudiantes del Semillero de Robótica de la Universidad del Cauca.
 - La versión del IDE de Arduino utilizada fue la 2.3.3
 - La versión de la libreria de Espressif para programación es la 2.0.11
 - El Link para programar tarjetas Esp32:
