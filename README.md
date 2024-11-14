@@ -18,7 +18,9 @@
 
 * La placa utiliza Bluetooth Low Energy por lo que es necesario la creación de UUID para cada caracteristica 
 
-* La cadena para sintonización bluetooth debe ser de la siguiente forma: *Kp,Ti,Td,Vmax
+* La cadena para sintonización bluetooth debe ser de la siguiente forma: *Kp,Ti,Td,Vmax,Turbina
+
+* Para modificar el Offset se debe entrar en la segunda caracteristica de la aplicacion y mandar valores entre 0 y 1.
 
 ### Pines Usados
 ----------------------------------
