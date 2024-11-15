@@ -166,7 +166,7 @@ void setup() {
 void loop() {
   //Serial.println("Funciona Xiao");
   Estado = digitalRead(MInit);
-  Estado=1;
+  //Estado=1;
   while (Estado) {
     Estado = digitalRead(MInit);
     Tinicio = millis();                         // toma el valor en milisengundos
