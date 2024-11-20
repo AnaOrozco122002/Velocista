@@ -20,7 +20,7 @@ const byte MInit = D3;
 int Estado;
 
 //TURBINA
-int ValTurb = 60; 
+int ValTurb = 90; 
 //Creación del Objeto
 Servo myTurbina;
 
@@ -41,15 +41,15 @@ unsigned int sensorValues[NUM_SENSORS];
 
 //Variables para el controlador
 float Tm = 9.0;  //tiempo de muestreo en mili segundos
-float Referencia = 0.0, Control = 0.0, Kp = 3, Ti = 0.0, Td = 0.008;
+float Referencia = 0.0, Control = 0.0, Kp = 3, Ti = 0, Td = 0.05;
 float Salida = 0.0, Error = 0.0, Error_ant = 0.0;  //variables de control
-float offset = 1, Vmax = 250, E_integral;
+float offset = 1, Vmax = 500, E_integral;
 char caracter;
 String datos;                     //  sintonizacion bluetooth
 int d1, d2, d3, d4;               //  sintonizacion bluetooth
 String S_Kp, S_Ti, S_Td, S_ValTurb,S_offset;  //  sintonizacion bluetooth
 unsigned long int Tinicio = 0;
-bool conect = false;
+bool conect = false,turen = false;
 //CREACIÓN DE PWM
 const uint16_t Frecuencia = 5000;
 const byte Canales[] = { 0, 1 };
@@ -59,6 +59,20 @@ const int PWMI = D6;  // Definición Pin 6 PWM Motor Derecho
 const int PWMD = D8;
 const int DirI = D5;
 const int DirD = D7;
+
+class MyServerCallbacks : public BLEServerCallbacks {
+  void onConnect(BLEServer* pServer) {
+    conect = true;
+    Serial.println("Cliente conectado.");
+  }
+
+  void onDisconnect(BLEServer* pServer) {
+    conect = false;
+    Serial.println("Cliente desconectado.");
+    pServer->getAdvertising()->start(); // Reinicia la publicidad
+    Serial.println("Publicidad BLE reiniciada.");
+  }
+};
 
 
 class MyCallbacks_1 : public BLECharacteristicCallbacks {
@@ -73,18 +87,21 @@ class MyCallbacks_1 : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     std::string value = pCharacteristic->getValue();
 
-
     if (value.length() > 0) {
       /*Serial.println("*********");
       Serial.print("New value: ");
-      for (int i = 0; i < value.length(); i++)
+      for (int i = 0; i < value.length(); i++) {
         Serial.print(value[i]);
+      }
 
-
-      Serial.println("*********");*/
+      Serial.println(" *********");*/
       datos = datos + value.c_str();
-      //Serial.println("Datos: " + String(datos));
+
+      // Procesar datos cuando empieza con '*'
       if (value[0] == '*') {
+        // Reemplazar '-' por '.'
+        datos.replace("-", ".");
+
         int d1 = datos.indexOf(',');
         String S_Kp = datos.substring(1, d1);
         int d2 = datos.indexOf(',', d1 + 1);
@@ -96,19 +113,22 @@ class MyCallbacks_1 : public BLECharacteristicCallbacks {
         int d5 = datos.indexOf(',', d4 + 1);
         String S_ValTurb = datos.substring(d4 + 1, d5);
 
-        datos = "";
+        datos = ""; // Reiniciar la cadena para recibir nuevos datos
 
+        // Convertir las cadenas a float
         Kp = S_Kp.toFloat();
         Ti = S_Ti.toFloat();
         Td = S_Td.toFloat();
         Vmax = S_Vmax.toFloat();
         ValTurb = S_ValTurb.toFloat();
-        //Serial.println("Skp: " + String(S_Kp) + " S_Ti: " + String(S_Ti) + " Td: " + String(S_Td) + " Vmax: " + String(S_Vmax));
+
+        // Mostrar los valores procesados
         //Serial.println("kp: " + String(Kp) + " Ti: " + String(Ti) + " Td: " + String(Td) + " Vmax: " + String(Vmax) + " Turbina: " + String(ValTurb));
       }
     }
   }
 };
+
 class MyCallbacks_2 : public BLECharacteristicCallbacks {
 
   void onConnect(BLEServer *pServer) {
@@ -147,8 +167,8 @@ void setup() {
   //Inicialización de Pines
   Inicializacion_Pines();
 
-  delay(3000);
-
+  //Inicialización de la turbina
+  Inicializacion_turbina();
 
   //Inicialización de Sensores
   Inicializacion_Sensores();
@@ -159,14 +179,15 @@ void setup() {
   //Inicializacion Bluetooth
   Inicializacion_Bluetooth();
 
-  //Inicialización de la turbina
-  Inicializacion_turbina();
+  delay(1000);
+
+  myTurbina.write(ValTurb);
+    
 }
 
 void loop() {
-  //Serial.println("Funciona Xiao");
   Estado = digitalRead(MInit);
-  Estado=1;
+  //Estado=1;
   while (Estado) {
     Estado = digitalRead(MInit);
     Tinicio = millis();                         // toma el valor en milisengundos
@@ -176,10 +197,17 @@ void loop() {
     Tm = Tiempo_Muestreo(Tinicio);
     myTurbina.write(ValTurb);
     EnviarDatos();
+    turen = true;
+  }
+  if(turen){
+    ledcWrite(Canales[0], 0);
+    ledcWrite(Canales[1], 0);
+    myTurbina.write(0);
+    EnviarDatos();
+    //Serial.println("no");
   }
   ledcWrite(Canales[0], 0);
   ledcWrite(Canales[1], 0);
-  myTurbina.write(0);
   EnviarDatos();
 }
 
@@ -249,13 +277,12 @@ void Inicializacion_turbina() {
   ESP32PWM::allocateTimer(2);
   myTurbina.setPeriodHertz(50);       //frecuencia de la señal cuadrada
   myTurbina.attach(Tur, 1000, 2000);  //(pin,min us de pulso, máx us de pulso)
-  myTurbina.write(0);                 //Preparación de la turbina
-  delay(2000);
+  myTurbina.write(0); 
 }
 
 void Inicializacion_Sensores() {
   //Calibración Inicial de Pines Sensor
-  for (int i = 0; i < 400; i++) {  // make the calibration take about 10 seconds
+  for (int i = 0; i < 300; i++) {  // make the calibration take about 10 seconds
     qtra.calibrate();              // reads all sensors 10 times at 2.5 ms per six sensors (i.e. ~25 ms per call)
   }
   //delay(2000);
@@ -277,6 +304,7 @@ void Inicializacion_Bluetooth() {
   BLEServer *pServer = BLEDevice::createServer();
 
   BLEService *pService = pServer->createService(SERVICE_UUID);
+  pServer->setCallbacks(new MyServerCallbacks());
 
   pCharacteristic = pService->createCharacteristic(
     CHARACTERISTIC_UUID,
@@ -300,8 +328,10 @@ void Inicializacion_Bluetooth() {
 }
 
 void EnviarDatos() {
-  pCharacteristic->setValue("Lectura Correcta");
-  pCharacteristic->notify();
-  pCharacteristic_2->setValue("Offset");
-  pCharacteristic_2->notify();
+  if (conect) {  // Solo enviar si hay una conexión
+    pCharacteristic->setValue("Lectura Correcta");
+    pCharacteristic->notify();
+    pCharacteristic_2->setValue("Offset");
+    pCharacteristic_2->notify();
+  }
 }
