@@ -20,12 +20,14 @@ const byte MInit = D3;
 int Estado;
 
 //TURBINA
-int ValTurb = 90; 
+
 //Creación del Objeto
 Servo myTurbina;
 
 //PIN PARA EL CONTROL DE TURBINA
 const byte Tur = D4;
+int ValTurb = 90,minvaltur=50,maxvaltur=180; 
+float KTurb=0.5;
 
 //Variables para sensores
 #define NUM_SENSORS 16            // Numero de sensores usados
@@ -120,10 +122,10 @@ class MyCallbacks_1 : public BLECharacteristicCallbacks {
         Ti = S_Ti.toFloat();
         Td = S_Td.toFloat();
         Vmax = S_Vmax.toFloat();
-        ValTurb = S_ValTurb.toFloat();
+        KTurb = S_ValTurb.toFloat();
 
         // Mostrar los valores procesados
-        //Serial.println("kp: " + String(Kp) + " Ti: " + String(Ti) + " Td: " + String(Td) + " Vmax: " + String(Vmax) + " Turbina: " + String(ValTurb));
+        //Serial.println("kp: " + String(Kp) + " Ti: " + String(Ti) + " Td: " + String(Td) + " Vmax: " + String(Vmax) + " KTurbina: " + String(KTurb));
       }
     }
   }
@@ -195,7 +197,7 @@ void loop() {
     Control = Controlador(Referencia, Salida);  // funcion de la ley de control
     Esfuerzo_Control(Control);                  // funcion encargada de enviar el esfuerzo de control
     Tm = Tiempo_Muestreo(Tinicio);
-    myTurbina.write(ValTurb);
+    Esfuerzo_Turbina();
     EnviarDatos();
     turen = true;
   }
@@ -225,11 +227,9 @@ float Controlador(float Referencia, float Salida) {  // Funcion para la ley de c
 
 
   Error = Referencia - Salida;
-  Error = (Error > -0.2 && Error < 0) ? 0 : (Error > 0 && Error < 0.2) ? 0
-                                                                       : Error;
+  Error = (Error > -0.2 && Error < 0) ? 0 : (Error > 0 && Error < 0.2) ? 0: Error;
   E_integral = E_integral + (((Error * (Tm / 1000.0)) + ((Tm / 1000.0) * (Error - Error_ant))) / 2.0);
-  E_integral = (E_integral > 100.0) ? 100.0 : (E_integral < -100.0) ? -100
-                                                                    : E_integral;
+  E_integral = (E_integral > 100.0) ? 100.0 : (E_integral < -100.0) ? -100: E_integral;
   E_derivativo = (Error - Error_ant) / (Tm / 1000.0);
   Control = Kp * (Error + Ti * E_integral + Td * E_derivativo);
   Error_ant = Error;
@@ -259,6 +259,13 @@ void Esfuerzo_Control(float Control) {  //envia el esfuerzo de control en forma 
   } else {
     digitalWrite(DirI, HIGH);
   }
+}
+
+void Esfuerzo_Turbina(){
+  float estur;
+  estur=constrain(round(minvaltur+((KTurb*abs(Error))*(maxvaltur-minvaltur))),minvaltur,maxvaltur);
+  //Serial.println(" Esfuerzo: " + String(estur));
+  myTurbina.write(estur);
 }
 
 unsigned long int Tiempo_Muestreo(unsigned long int Tinicio) {  //, unsigned int Tm){ // Funcion que asegura que el tiempo de muestreo sea el mismo siempre
@@ -329,7 +336,7 @@ void Inicializacion_Bluetooth() {
 
 void EnviarDatos() {
   if (conect) {  // Solo enviar si hay una conexión
-    pCharacteristic->setValue("Lectura Correcta");
+    pCharacteristic->setValue("Correcto");
     pCharacteristic->notify();
     pCharacteristic_2->setValue("Offset");
     pCharacteristic_2->notify();
