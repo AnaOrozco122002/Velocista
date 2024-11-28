@@ -26,8 +26,8 @@ Servo myTurbina;
 
 //PIN PARA EL CONTROL DE TURBINA
 const byte Tur = D4;
-int ValTurb = 90,minvaltur=50,maxvaltur=180; 
-float KTurb=0.5;
+int ValTurb = 150,minvaltur=50,maxvaltur=180; 
+float KTurb=0.6;
 
 //Variables para sensores
 #define NUM_SENSORS 16            // Numero de sensores usados
@@ -43,9 +43,9 @@ unsigned int sensorValues[NUM_SENSORS];
 
 //Variables para el controlador
 float Tm = 9.0;  //tiempo de muestreo en mili segundos
-float Referencia = 0.0, Control = 0.0, Kp = 3, Ti = 0, Td = 0.05;
+float Referencia = 0.0, Control = 0.0, Kp = 4.1, Ti = 0, Td = 0.05;
 float Salida = 0.0, Error = 0.0, Error_ant = 0.0;  //variables de control
-float offset = 1, Vmax = 500, E_integral;
+float offset = 1, Vmax = 410, E_integral;
 char caracter;
 String datos;                     //  sintonizacion bluetooth
 int d1, d2, d3, d4;               //  sintonizacion bluetooth
@@ -122,10 +122,10 @@ class MyCallbacks_1 : public BLECharacteristicCallbacks {
         Ti = S_Ti.toFloat();
         Td = S_Td.toFloat();
         Vmax = S_Vmax.toFloat();
-        KTurb = S_ValTurb.toFloat();
+        ValTurb = S_ValTurb.toFloat();
 
         // Mostrar los valores procesados
-        //Serial.println("kp: " + String(Kp) + " Ti: " + String(Ti) + " Td: " + String(Td) + " Vmax: " + String(Vmax) + " KTurbina: " + String(KTurb));
+        //Serial.println("kp: " + String(Kp) + " Ti: " + String(Ti) + " Td: " + String(Td) + " Vmax: " + String(Vmax) + " Turbina: " + String(Turb));
       }
     }
   }
@@ -197,7 +197,8 @@ void loop() {
     Control = Controlador(Referencia, Salida);  // funcion de la ley de control
     Esfuerzo_Control(Control);                  // funcion encargada de enviar el esfuerzo de control
     Tm = Tiempo_Muestreo(Tinicio);
-    Esfuerzo_Turbina();
+    myTurbina.write(ValTurb);
+    //Esfuerzo_Turbina();
     EnviarDatos();
     turen = true;
   }
