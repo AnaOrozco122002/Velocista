@@ -43,25 +43,34 @@ unsigned int sensorValues[NUM_SENSORS];
 
 //Variables para el controlador
 float Tm = 9.0;  //tiempo de muestreo en mili segundos
-float Referencia = 0.0, Control = 0.0, Kp = 4.1, Ti = 0, Td = 0.05;
+
+//Variables del controlador PID
+float Referencia = 0.0, Control = 0.0, Kp = 2.0, Ti = 0, Td = 0.02;
 float Salida = 0.0, Error = 0.0, Error_ant = 0.0;  //variables de control
-float offset = 1, Vmax = 410, E_integral;
+float offset = 1, Vmax = 250, E_integral;
+
+//Variables del Bluetooth
 char caracter;
 String datos;                     //  sintonizacion bluetooth
 int d1, d2, d3, d4;               //  sintonizacion bluetooth
 String S_Kp, S_Ti, S_Td, S_ValTurb,S_offset;  //  sintonizacion bluetooth
+
+//Variables Auxiliares
 unsigned long int Tinicio = 0;
 bool conect = false,turen = false;
+
 //CREACIÓN DE PWM
 const uint16_t Frecuencia = 5000;
 const byte Canales[] = { 0, 1 };
 const byte Resolucion = 10;
 
-const int PWMI = D6;  // Definición Pin 6 PWM Motor Derecho
+//Variables del Control del Motor
+const int PWMI = D6;
 const int PWMD = D8;
 const int DirI = D5;
 const int DirD = D7;
 
+//Servidor BLE
 class MyServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer* pServer) {
     conect = true;
@@ -76,7 +85,7 @@ class MyServerCallbacks : public BLEServerCallbacks {
   }
 };
 
-
+//Caracteristica 1
 class MyCallbacks_1 : public BLECharacteristicCallbacks {
 
   void onConnect(BLEServer *pServer) {
@@ -131,6 +140,7 @@ class MyCallbacks_1 : public BLECharacteristicCallbacks {
   }
 };
 
+//Caracteristica 2
 class MyCallbacks_2 : public BLECharacteristicCallbacks {
 
   void onConnect(BLEServer *pServer) {
@@ -181,6 +191,7 @@ void setup() {
   //Inicializacion Bluetooth
   Inicializacion_Bluetooth();
 
+  //Para El funcionamiento de la Turbina
   delay(1000);
 
   myTurbina.write(ValTurb);
@@ -189,7 +200,7 @@ void setup() {
 
 void loop() {
   Estado = digitalRead(MInit);
-  //Estado=1;
+  //Estado=1; //Para Desactivar el modulo de Inicio
   while (Estado) {
     Estado = digitalRead(MInit);
     Tinicio = millis();                         // toma el valor en milisengundos
@@ -198,9 +209,9 @@ void loop() {
     Esfuerzo_Control(Control);                  // funcion encargada de enviar el esfuerzo de control
     Tm = Tiempo_Muestreo(Tinicio);
     myTurbina.write(ValTurb);
-    //Esfuerzo_Turbina();
+    //Esfuerzo_Turbina(); //Turbina Variable
     EnviarDatos();
-    turen = true;
+    turen = true; //Variable que indica que se entro en el while
   }
   if(turen){
     ledcWrite(Canales[0], 0);
@@ -221,7 +232,7 @@ float Lectura_Sensor(void) {
   return Salida;  // retorno la variable de salidad del proceso normalizada entre 0-1, al olgoritmo de control
 }
 
-//Controlador para Motoresu
+//Controlador para Motores
 float Controlador(float Referencia, float Salida) {  // Funcion para la ley de control
   float E_derivativo;
   float Control;
@@ -234,8 +245,9 @@ float Controlador(float Referencia, float Salida) {  // Funcion para la ley de c
   E_derivativo = (Error - Error_ant) / (Tm / 1000.0);
   Control = Kp * (Error + Ti * E_integral + Td * E_derivativo);
   Error_ant = Error;
-  Control = (Control > 2.5) ? 2.5 : (Control < -2.5) ? -2.5
-                                                     : Control;
+  Control = (Control > 2.5) ? 2.5 : (Control < -2.5) ? -2.5: Control;
+  
+  
   //Serial.println(Control);
   return Control;
 }
@@ -262,6 +274,7 @@ void Esfuerzo_Control(float Control) {  //envia el esfuerzo de control en forma 
   }
 }
 
+//Turbina Variable
 void Esfuerzo_Turbina(){
   float estur;
   estur=constrain(round(minvaltur+((KTurb*abs(Error))*(maxvaltur-minvaltur))),minvaltur,maxvaltur);
